@@ -48,31 +48,6 @@ def getSubtractiveMatrix(textMatrix, keyMatrix, blockSize):
     
     return subtractiveMatrix
 
-def getIntermediateCipher(subtractiveMatrix, blockSize, convTable):
-    
-    primeList = [2,3,5,7]
-    a = random.choice(primeList)
-    b = random.choice(primeList)
-
-    #a = 5
-    #b = 2
-
-    intermediateCipherList = []
-    for i in range(0, len(subtractiveMatrix)):
-        for j in range(0, blockSize):
-            intermediateCipherList.append((a * subtractiveMatrix[i][j] + b) % 31)
-
-    intermediateCipher = ''
-    characters = list(convTable.keys())
-    for i in range(0, len(intermediateCipherList)):
-        currentIntermediateCode = intermediateCipherList[i]
-        for j in characters:
-            if(convTable[j] == currentIntermediateCode):
-                intermediateCipher = intermediateCipher + j
-                break
-
-    return intermediateCipher
-
 def crossover(segment1, segment2):
 
     for i in range(0, len(segment1)):
@@ -106,31 +81,35 @@ def mutation(segment1, segment2):
 def decimalToHex(dataList):
     hexData = ''
     for i in range(0, len(dataList)):
-        hexData = hexData + hex(dataList[i]).lstrip('0x')
+        hexData = hexData + "{:02x}".format(dataList[i])
     hexData = hexData.upper()
     return hexData
 
 def encrypt(plainText):
 
     blockSize = 4
-    (convTable, charTable) = Initializations.initializeTables()
+    charTable = Initializations.initializeTables()
     
     key = EncryptionKeyGeneration.generateKey(charTable)
     keyMatrix = EncryptionKeyGeneration.getKeyMatrix(key, charTable, blockSize)
     
     textMatrix = getTextMatrix(plainText, charTable, blockSize)
     subtractiveMatrix = getSubtractiveMatrix(textMatrix, keyMatrix, blockSize)
-    intermediateCipher = getIntermediateCipher(subtractiveMatrix, blockSize, convTable)
-    ebcdicEquivalent = getEBCDICEquivalent(intermediateCipher, charTable)
-    
-    segment1 = ebcdicEquivalent[:len(ebcdicEquivalent)//2]
-    segment2 = ebcdicEquivalent[len(ebcdicEquivalent)//2:]
-    
+
+    linearData = []
+    for i in range(0, len(subtractiveMatrix)):
+        for j in range(0, blockSize):
+            linearData.append(subtractiveMatrix[i][j])
+
+    segment1 = linearData[:len(linearData)//2]
+    segment2 = linearData[len(linearData)//2:]
+
     crossover(segment1, segment2)
     mutation(segment1, segment2)
     
     segment = segment1 + segment2
-    
+
     finalCipher = decimalToHex(segment)
+    key = key + str(blockSize) + 'CM'
     
-    return finalCipher
+    return finalCipher, key
